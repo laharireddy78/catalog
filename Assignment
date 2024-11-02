@@ -1,0 +1,64 @@
+import org.json.JSONArray;
+import org.json.JSONObject;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.io.IOException;
+
+public class PolynomialSecretCalculator {
+
+    private static int convertToDecimal(String numberString, int base) {
+        try {
+            return Integer.parseInt(numberString, base);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid number for base " + base + ": " + numberString);
+        }
+    }
+
+    public static int computeSecretTerm(JSONObject testCase) {
+        int totalRoots = testCase.getJSONObject("keys").getInt("n");
+        int requiredRoots = testCase.getJSONObject("keys").getInt("k");
+
+        if (totalRoots < requiredRoots) {
+            throw new IllegalArgumentException("Insufficient roots provided for polynomial determination.");
+        }
+
+        int secretTerm = 1;
+
+        for (String key : testCase.keySet()) {
+            if (key.matches("\\d+")) {
+                JSONObject rootInfo = testCase.getJSONObject(key);
+                int base = rootInfo.getInt("base");
+                String value = rootInfo.getString("value");
+                int decimalValue = convertToDecimal(value, base);
+                
+                if (decimalValue <= 0) {
+                    throw new IllegalArgumentException("Coefficient must be a positive integer: " + decimalValue);
+                }
+                
+                secretTerm *= -decimalValue;
+            }
+        }
+
+        return Math.abs(secretTerm);
+    }
+
+    public static void main(String[] args) {
+        String jsonFilePath = "input.json";
+
+        try {
+            String jsonData = new String(Files.readAllBytes(Paths.get(jsonFilePath)));
+            JSONObject jsonObject = new JSONObject(jsonData);
+            JSONArray testCasesArray = jsonObject.getJSONArray("testCases");
+
+            for (int i = 0; i < testCasesArray.length(); i++) {
+                JSONObject currentTestCase = testCasesArray.getJSONObject(i);
+                int secret = computeSecretTerm(currentTestCase);
+                System.out.println("The constant term 'c' of the polynomial for test case " + (i + 1) + " is: " + secret);
+            }
+        } catch (IOException e) {
+            System.err.println("Error reading the JSON file: " + e.getMessage());
+        } catch (IllegalArgumentException e) {
+            System.err.println("Error: " + e.getMessage());
+        }
+    }
+}
